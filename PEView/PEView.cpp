@@ -50,10 +50,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,             // 应用程序本�
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_PEVIEW));  // 获取菜单资源表的句柄
 
-    OpenFileName(hwndMain, szFilePath);
-    if (szFilePath[0]!=NULL)
+    if (wcslen(lpCmdLine))
     {
-        FileMain(hwndMain, szFilePath);
+        FileMain(hwndMain, lpCmdLine);
+    }
+    else
+    {
+        OpenFileName(hwndMain, szFilePath);
+        if (szFilePath[0] != NULL)
+        {
+            FileMain(hwndMain, szFilePath);
+        }
     }
        
     MSG msg;
@@ -125,7 +132,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        nullptr,             // 菜单（无菜单）
        hInstance,           // 应用程序实例
        nullptr);            // 窗口创建数据（无窗口创建数据）
-
+ 
    if (!hWnd)
    {
       return FALSE;

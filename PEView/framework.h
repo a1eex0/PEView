@@ -25,3 +25,5 @@
 #include <tchar.h>
 #include <stdio.h>
 #include <time.h>
+
+#pragma warning(disable:4996)

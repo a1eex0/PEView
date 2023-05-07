@@ -1010,11 +1010,6 @@ VOID CLICK_IMAGE_EXPORT_DIRECTORY64(PCHAR buffer)
 	BOOL bFuncName = FALSE;
 	for (size_t i = 0; i <= pExport->NumberOfFunctions; i++)
 	{
-		if (pEAT64[i] == 0)
-		{
-			continue;
-		}
-
 		line += 1;
 		AddListViewRow(hwndListView, line, i + 1);
 
@@ -1024,9 +1019,9 @@ VOID CLICK_IMAGE_EXPORT_DIRECTORY64(PCHAR buffer)
 			{
 				_stprintf_s(strBuffer, L"%08X", pID[n]);
 				ListView_SetItemText(hwndListView, line, 1, strBuffer);
-				_stprintf_s(strBuffer, L"%08X", pEAT64[i]);
+				_stprintf_s(strBuffer, L"%08X", pEAT64[pID[n]]);
 				ListView_SetItemText(hwndListView, line, 2, strBuffer);
-				PCHAR szFuncName = (PCHAR)(RvaToOffset(pENT64[i], buffer) + buffer);
+				PCHAR szFuncName = (PCHAR)(RvaToOffset(pENT64[n], buffer) + buffer);
 				memset(strName, 0, sizeof(strName));
 				MultiByteToWideChar(CP_ACP, 0, szFuncName, strlen(szFuncName) + 1, strName, sizeof(strName) / sizeof(strName[0]));
 				ListView_SetItemText(hwndListView, line, 3, strName);
@@ -2629,7 +2624,7 @@ VOID CLICK_IMAGE_IAT_DIRECTORY64(PCHAR buffer)
 	while (pImport->Name != NULL)
 	{
 		PCHAR szName = (PCHAR)(RvaToOffset(pImport->Name, buffer) + buffer);
-		WCHAR strDllName[50];
+		WCHAR strDllName[100];
 		memset(strDllName, 0, sizeof(strDllName));
 		MultiByteToWideChar(CP_ACP, 0, szName, strlen(szName) + 1, strDllName, sizeof(strDllName) / sizeof(strDllName[0]));
 

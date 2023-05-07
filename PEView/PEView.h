@@ -4,6 +4,7 @@
 
 // 声明其他文件中已定义的全局变量
 extern HWND hwndTreeView, hwndListView, hwndStatus;    // 控件句柄
+extern LPVOID lpFileBuffer; // 文件缓冲区
 extern LPWSTR szFileName;	// 文件名
 extern DWORD dwFileLength;	// 文件长度
 

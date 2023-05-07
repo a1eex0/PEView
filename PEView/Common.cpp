@@ -3,16 +3,10 @@
 #include "framework.h"
 #include "PEView.h"
 
-#pragma warning(disable:4996)
-
-// 全局变量:
-LPWSTR szFileName;
-DWORD PETypeFlag;
-DWORD dwFileLength;
-PCHAR pFileBuffer;
-
-// 此代码模块中包含的函数的前向声明:
-
+LPVOID lpFileBuffer = NULL;
+LPWSTR szFileName = NULL;
+DWORD PETypeFlag = 0;
+DWORD dwFileLength = 0;
 
 //
 //  函数: OpenFileName(HWND hWnd, LPWSTR lpFilePath)
@@ -41,25 +35,34 @@ LPWSTR OpenFileName(HWND hWnd, LPWSTR lpFilePath)
 //
 VOID FileMain(HWND hWnd, LPWSTR lpFilePath)
 {
-    if (!lpFilePath)
+    HANDLE hViewFile = NULL;
+    LARGE_INTEGER liFileSize;
+    DWORD dwReadSize;
+
+    hViewFile = CreateFileW(lpFilePath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hViewFile == INVALID_HANDLE_VALUE)
     {
         return;
     }
-    FILE* pFile = NULL;
-    // PCHAR pFileBuffer;
-    pFile = _wfopen(lpFilePath,L"rb");                  // 打开文件
-    fseek(pFile, 0, SEEK_END);	                        // 将位置指针移动到文件末尾（SEEK_END 表示末尾）
-    dwFileLength = ftell(pFile);	                        // 获取当前位置指针相对于文件首的偏移字节数，以此获取文件的总字节数
-    rewind(pFile);	                                    // 将位置指针移动到文件开头
-    int imageLength = dwFileLength * sizeof(char) + 1;	// 按 char 型计算长度，增加最后的空截断
-    pFileBuffer = (char*)malloc(imageLength);	        // 动态申请内存空间
-    memset(pFileBuffer, 0, dwFileLength * sizeof(char) + 1);	// 将 buffer 空间置空
-    fread(pFileBuffer, 1, imageLength, pFile);	        // 将 pFile 文件流逐字节读取到 fileBuffer 中
+    
+    GetFileSizeEx(hViewFile, &liFileSize);
+    if (liFileSize.QuadPart > 0x80000000)               // 大于2GB的文件不进行分析展示
+    {
+        MessageBoxW(hWnd, L"大于2GB的文件不进行分析展示", L"抱歉", MB_OK | MB_ICONWARNING);
+        return;
+    }
+    
+    lpFileBuffer = VirtualAlloc(NULL, liFileSize.QuadPart, MEM_COMMIT, PAGE_READWRITE);
+    
+    if (ReadFile(hViewFile, lpFileBuffer, liFileSize.QuadPart, &dwReadSize, NULL))
+    {
+        dwFileLength = dwReadSize;
+    }
 
-    szFileName = PathFindFileName(lpFilePath);
+    szFileName = PathFindFileNameW(lpFilePath);
     // 从内存中获取文件基本信息
-    PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)pFileBuffer;	                    // 声明并赋值 DOS 头
-    PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)(pDos->e_lfanew + pFileBuffer);   // 声明并赋值 NT 头
+    PIMAGE_DOS_HEADER pDos = (PIMAGE_DOS_HEADER)lpFileBuffer;
+    PIMAGE_NT_HEADERS pNt = (PIMAGE_NT_HEADERS)(pDos->e_lfanew + (DWORD)lpFileBuffer);
     // 判断 NT Signature 是否为 PE
     if (pNt->Signature != IMAGE_NT_SIGNATURE)
     {
@@ -70,11 +73,11 @@ VOID FileMain(HWND hWnd, LPWSTR lpFilePath)
     // 根据 OptionalHeader 标识，判断 PE 文件结构
     if (PETypeFlag == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        FormatMain32(hWnd, pFileBuffer, lpFilePath);
+        FormatMain32(hWnd, (PCHAR)lpFileBuffer, lpFilePath);
     }
     else if (PETypeFlag == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        FormatMain64(hWnd, pFileBuffer, lpFilePath);
+        FormatMain64(hWnd, (PCHAR)lpFileBuffer, lpFilePath);
     }
     else
     {
@@ -119,13 +122,12 @@ VOID OnClickTree(LPNMHDR lPhr)
         // 根据被点击子节点的名称进行响应
         if (PETypeFlag == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         {
-            TreeToList32(pFileBuffer, szText, szFileName);
+            TreeToList32((PCHAR)lpFileBuffer, szText, szFileName);
         }
         else if (PETypeFlag == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
         {
-            TreeToList64(pFileBuffer, szText, szFileName);
+            TreeToList64((PCHAR)lpFileBuffer, szText, szFileName);
         }
-        
     }
 }
 
@@ -222,22 +224,3 @@ DWORD RvaToOffset(DWORD dwRva, PCHAR buffer)
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
